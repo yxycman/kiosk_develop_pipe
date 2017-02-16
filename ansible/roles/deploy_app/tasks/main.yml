@@ -35,7 +35,7 @@
 
 - name: Registering service to Consul
   shell: "curl -s -X PUT -d \
-   '{ \"Name\": \"{{ swarm_app_name }}\", \"Tags\": [ \"{{ swarm_app_version }}\", \"{{ item }}\" ], \"Address\": \"{{ item }}\", \"Port\": {{ service_port.stdout }}, \
+   '{ \"Name\": \"{{ swarm_app_name }}\", \"Tags\": [ \"{{ item }}-{{ swarm_app_version }}\" ], \"Address\": \"{{ item }}\", \"Port\": {{ service_port.stdout }}, \
     \"Check\": { \"HTTP\": \"http://{{ item }}:{{ service_port.stdout }}\", \"Interval\": \"10s\" }}' \
    http://{{ item }}:8500/v1/agent/service/register"
   with_items:

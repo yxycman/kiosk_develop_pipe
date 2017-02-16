@@ -1,10 +1,9 @@
 - name: Create a new swarm
   shell: "docker swarm init --advertise-addr {{ swarm_master_addr }}"
   when: swarm_master|bool
-  ignore_errors: yes
 
 - name: Register swarm token
-  shell: "docker swarm join-token manager | awk '/--token/ {print $2}'"
+  shell: "docker swarm join-token worker | awk '/--token/ {print $2}'"
   register: docker_swarm_token
   when: swarm_master|bool
 

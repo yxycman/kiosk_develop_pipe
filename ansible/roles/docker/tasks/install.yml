@@ -7,6 +7,17 @@
   with_items:
    - "{{ apt_packages }}"
 
+- name: Copy PIP installation script
+  copy:
+    src: "get-pip.py"
+    dest: "/tmp/get-pip.py"
+    mode: 0755
+
+- name: Install PIP
+  shell: "python /tmp/get-pip.py"
+  args:
+    creates: "/usr/local/bin/pip"
+
 - name: Install PIP packages
   pip:
     name: "{{ item }}"

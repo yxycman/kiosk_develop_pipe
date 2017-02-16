@@ -1,25 +1,28 @@
 - name: Create a new swarm
-  shell: "docker swarm init --advertise-addr {{ swarm_master_addr }} | awk '/--token/ {print $2}'"
-  register: docker_swarm_token
+  shell: "docker swarm init --advertise-addr {{ swarm_master_addr }}"
   when: swarm_master|bool
   ignore_errors: yes
 
-#- name: Create overlay network
-#  shell: "docker network create -d overlay swarm_overlay_net"
-#  when: swarm_master|bool
-#  ignore_errors: yes
+- name: Register swarm token
+  shell: "docker swarm join-token manager | awk '/--token/ {print $2}'"
+  register: docker_swarm_token
+  when: swarm_master|bool
 
 - set_fact:
     docker_swarm_token_parsed: "{{ hostvars['10.10.10.101']['docker_swarm_token']['stdout'] }}"
 
+- fail:
+    msg: "Cannot load Docker Swarm Token"
+  when: docker_swarm_token_parsed == ""
+
 - debug: var=docker_swarm_token_parsed
 
 - name: Leave old swarm
-  shell: "docker swarm leave"
-  when: swarm_master == false and docker_swarm_token_parsed != ''
+  shell: "docker swarm leave --force"
+  when: swarm_master == false
   ignore_errors: yes
 
 - name: Join a new swarm
   shell: "docker swarm join --token {{ docker_swarm_token_parsed }} {{ swarm_master_addr }}"
-  when: swarm_master == false and docker_swarm_token_parsed != ''
+  when: swarm_master == false
   ignore_errors: yes

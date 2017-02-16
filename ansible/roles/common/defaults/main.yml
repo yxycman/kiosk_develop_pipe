@@ -1,0 +1,9 @@
+hosts: [
+  { host_ip: "10.10.10.101", host_name: "cluster1"},
+  { host_ip: "10.10.10.102", host_name: "cluster2"},
+  { host_ip: "10.10.10.103", host_name: "cluster3"},
+  { host_ip: "10.10.10.100", host_name: "balancer1"},
+]
+
+apt_packages:
+  - jq

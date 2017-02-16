@@ -1,0 +1,68 @@
+#- debug: var=ansible_distribution_release
+
+- name: Install APT packages
+  apt:
+    name: "{{ item }}"
+    state: installed
+  with_items:
+   - "{{ apt_packages }}"
+
+- name: Install PIP packages
+  pip:
+    name: "{{ item }}"
+    state: present
+  with_items:
+   - "{{ pip_packages }}"
+
+- name: Add Dockers official GPG key
+  apt_key:
+    id: 58118E89F3A912897C070ADBF76221572C52609D
+    url: "https://yum.dockerproject.org/gpg"
+    state: present
+
+- name: Set up the stable repository
+  apt_repository:
+#    filename: "docker_{{ ansible_distribution_release }}.list"
+    repo: "deb https://apt.dockerproject.org/repo/ ubuntu-{{ ansible_distribution_release }} main"
+    state: present
+    update_cache: yes
+
+- name: Install Docker
+  apt:
+    name: "{{ docker_engine_packagename }}"
+    update_cache: yes
+
+- name: Create Docker group if needed
+  group:
+    name: docker
+    state: present
+
+- name: Add ansible user to Docker group if needed
+  user:
+    name: "{{ ansible_user }}"
+    groups: docker
+    append: yes
+
+- name: Rewriting DOCKER_OPTS
+  lineinfile:
+    dest: '/etc/default/docker'
+    regexp: '^DOCKER_OPTS='
+    line: 'DOCKER_OPTS="--insecure-registry balancer1:5000"'
+  register: rewrited
+
+- name: Restart Docker service
+  service:
+    name: docker
+    state: restarted
+  when: rewrited.changed == true
+
+- name: Docker UI container
+  docker:
+    name: DockerUI
+    image: "{{ docker_ui_container }}"
+    state: started
+    ports:
+    - "9000:9000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+  ignore_errors: yes

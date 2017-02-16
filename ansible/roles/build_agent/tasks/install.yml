@@ -1,0 +1,31 @@
+- name: Install APT packages
+  apt:
+    name: "{{ item }}"
+    state: installed
+    update_cache: yes
+  with_items:
+   - "{{ apt_packages }}"
+
+- name: Copy PIP installation script
+  copy:
+    src: "get-pip.py"
+    dest: "/tmp/get-pip.py"
+    mode: 0755
+
+- name: Install PIP
+  shell: "python /tmp/get-pip.py"
+
+- name: Install PIP packages
+  pip:
+    name: "{{ item }}"
+    state: present
+  with_items:
+   - "{{ pip_packages }}"
+
+- name: Disabling SSL verify for GIT
+  blockinfile:
+    dest: /home/vagrant/.gitconfig
+    block: |
+       [http]
+         sslverify = false
+    create: yes

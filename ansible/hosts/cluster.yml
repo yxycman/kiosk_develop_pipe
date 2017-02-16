@@ -1,0 +1,35 @@
+[cluster:children]
+docker_cluster
+app_server
+
+[docker_cluster:children]
+docker
+consul
+
+[app_server:children]
+balancer
+jenkins
+
+[balancer]
+10.10.10.100
+
+[jenkins]
+10.10.10.100
+
+[docker]
+10.10.10.101 swarm_master=true
+10.10.10.102
+10.10.10.103
+
+[consul:children]
+consul-server
+consul-agents
+
+[consul-server]
+10.10.10.101 consul_server_param="-server -ui -bootstrap"
+
+[consul-agents]
+10.10.10.102 consul_server="10.10.10.101"
+10.10.10.103 consul_server="10.10.10.101"
+
+

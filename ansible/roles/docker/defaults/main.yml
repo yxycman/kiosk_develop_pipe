@@ -1,0 +1,16 @@
+apt_packages:
+  - apt-transport-https
+  - ca-certificates
+  - python-pip
+
+pip_packages:
+  - docker-py
+
+docker_engine_packagename: docker-engine
+docker_ui_container: "uifd/ui-for-docker"
+#docker_ui_container: "portainer/portainer"
+
+#Docker swarm
+swarm_cluster: false
+swarm_master: false
+swarm_master_addr: "10.10.10.101:2377"

@@ -1,0 +1,62 @@
+jenkins_container_name : JenkinsLatest
+jenkins_admin_token: 18f7a4b93f97ed92a1ee346b757258b8
+
+jenkins_directories:
+#  - "/data/jenkins/jobs/HelloWorld_Container/"
+  - "/data/jenkins/nodes/docker_builder/"
+  - "/data/jenkins/users/admin/"
+
+jenkins_files: [
+  { src: "insecure_private_key", dest: "/data/jenkins/insecure_private_key" },
+  { src: "config.xml", dest: "/data/jenkins/config.xml" },
+  { src: "secret.key", dest: "/data/jenkins/secret.key" },
+  { src: "credentials.xml", dest: "/data/jenkins/credentials.xml" },
+  { src: "hudson.tasks.Maven.xml", dest: "/data/jenkins/hudson.tasks.Maven.xml" },
+  { src: "jenkins.mvn.GlobalMavenConfig.xml", dest: "/data/jenkins/jenkins.mvn.GlobalMavenConfig.xml" },
+  { src: "secrets/hudson.util.Secret", dest: "/data/jenkins/secrets/hudson.util.Secret" },
+  { src: "secrets/master.key", dest: "/data/jenkins/secrets/master.key" },
+  { src: "users/admin/config.xml", dest: "/data/jenkins/users/admin/config.xml" },
+  { src: "nodes/docker_builder/config.xml", dest: "/data/jenkins/nodes/docker_builder/config.xml" },
+]
+
+jenkins_jobs: [
+  { name: "HelloWorld_Container", src: "jobs/HelloWorld_Container/config.xml" },
+  { name: "HelloWorld_DeployPipe", src: "jobs/HelloWorld_DeployPipe/config.xml" },
+]
+
+jenkins_plugins:
+  - git
+  - git-changelog
+  - workflow-scm-step
+  - pipeline-build-step
+  - cloudbees-folder
+  - antisamy-markup-formatter
+  - build-timeout
+  - credentials-binding
+  - timestamper
+  - ws-cleanup
+  - pipeline-milestone-step
+  - jquery-detached
+  - pipeline-input-step
+  - ace-editor
+  - workflow-cps
+  - pipeline-stage-step
+  - workflow-job
+  - pipeline-graph-analysis
+  - pipeline-rest-api
+  - handlebars
+  - momentjs
+  - pipeline-stage-view
+  - git-server
+  - workflow-cps-global-lib
+  - branch-api
+  - workflow-multibranch
+  - durable-task
+  - workflow-durable-task-step
+  - workflow-aggregator
+  - subversion
+  - ssh-slaves
+  - email-ext
+  - uno-choice
+  - ansible
+  - ansicolor

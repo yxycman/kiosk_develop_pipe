@@ -1,0 +1,3 @@
+registry_directories:
+  - "/data"
+  - "/data/registry"

@@ -1,0 +1,35 @@
+- name: Get the servers IP from ansible_all_ipv4_addresses
+  set_fact:
+    ipfrom4: "{{ ansible_all_ipv4_addresses | ipaddr('10.10.10.0/24') }}"
+
+- debug:
+    var=ipfrom4[0]
+
+- name: Directories are created
+  file:
+    path: "{{ item }}"
+    state: directory
+    recurse: yes
+  with_items: "{{ directories }}"
+
+- name: Copy Consul binaries to /usr/bin
+  copy:
+    src: "{{ item.src }}"
+    dest: "/usr/bin/{{ item.dest }}"
+    mode: 0755
+  with_items:
+   - "{{ consul_binaries }}"
+
+- name: Start Consul
+  shell: "nohup consul agent {{ consul_server_param }} \
+    -data-dir /data/consul/data \
+    -config-dir /data/consul/config \
+    -node={{ ansible_hostname }} \
+    -bind={{ ipfrom4[0] }} \
+    -client=0.0.0.0 \
+    >>/data/consul/logs/consul.log 2>&1 &"
+
+- name: Join Consul cluster
+  shell: "nohup consul join {{ consul_server }}"
+  when: consul_server is defined
+  ignore_errors: yes

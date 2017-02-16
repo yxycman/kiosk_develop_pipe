@@ -1,0 +1,7 @@
+- name: Copy Consul binaries to /usr/bin
+  copy:
+    src: "{{ item.src }}"
+    dest: "/usr/bin/{{ item.dest }}"
+    mode: 0755
+  with_items:
+   - "{{ consul_binaries }}"

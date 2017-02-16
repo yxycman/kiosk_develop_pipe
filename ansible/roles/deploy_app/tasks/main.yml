@@ -1,0 +1,61 @@
+- name: Checking if app already deployed
+  shell: "docker service inspect {{ swarm_app_name }} | jq .[].Endpoint.Ports[].PublishedPort"
+  when: swarm_master|bool
+  ignore_errors: yes
+  register: check_result
+
+- name: Create overlay network
+  shell: "docker network create -d overlay {{ swarm_app_name }}_NET"
+  ignore_errors: yes
+  when: swarm_master|bool and not check_result.stdout
+
+- name: Deploy app to swarm
+  shell: "docker service create --name {{ swarm_app_name }} --network {{ swarm_app_name }}_NET --replicas {{ swarm_app_replicas }} -p 9090 balancer1:5000/{{ swarm_app_name }}:{{ swarm_app_version }}"
+  ignore_errors: yes
+  register: deploy_result
+  when: swarm_master|bool and not check_result.stdout
+
+- name: Update app in swarm
+  shell: "docker service update --update-parallelism 1 --replicas {{ swarm_app_replicas }} --update-delay 5s --image balancer1:5000/{{ swarm_app_name }}:{{ swarm_app_version }} {{ swarm_app_name }}"
+  ignore_errors: yes
+  register: deploy_result
+  when: swarm_master|bool and check_result.stdout
+
+- name: Registering Service Port
+  shell: "docker service inspect -f {% raw %}'{{ (index (index .Endpoint.Ports) 0).PublishedPort }}'{% endraw %} {{ swarm_app_name }}"
+  #shell: "docker service inspect {{ swarm_app_name }} | jq .[].Endpoint.Ports[].PublishedPort"
+  ignore_errors: yes
+  register: service_port
+  when: swarm_master|bool
+
+- name: Getting list of Swarm nodes
+  shell: "docker node ls | awk 'BEGIN { FS=\"(*| )\" } !/ID/ { print $5 }'"
+  register: nodes_list
+  when: swarm_master|bool
+
+- name: Registering service to Consul
+  shell: "curl -s -X PUT -d \
+   '{ \"Name\": \"{{ swarm_app_name }}\", \"Tags\": [ \"{{ swarm_app_version }}\", \"{{ item }}\" ], \"Address\": \"{{ item }}\", \"Port\": {{ service_port.stdout }}, \
+    \"Check\": { \"HTTP\": \"http://{{ item }}:{{ service_port.stdout }}\", \"Interval\": \"10s\" }}' \
+   http://{{ item }}:8500/v1/agent/service/register"
+  with_items:
+    "{{ nodes_list.stdout_lines }}"
+  when: swarm_master|bool
+
+- name: Copy Handler for the service
+  template:
+    src: roles/deploy_app/files/handler.j2
+    dest: "/data/consul/config/handlers/{{ swarm_app_name }}_handler.sh"
+    mode: 0755
+  register: handler
+
+- name: Copy Wathces for the service
+  template:
+    src: roles/deploy_app/files/watches.j2
+    dest: "/data/consul/config/{{ swarm_app_name }}_watch.json"
+    mode: 0644
+  register: wathces
+
+- name: Reload Consul
+  shell: "sudo killall -HUP consul"
+  when: wathces.changed or handler.changed

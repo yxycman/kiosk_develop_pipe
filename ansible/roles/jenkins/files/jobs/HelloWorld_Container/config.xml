@@ -1,0 +1,55 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<flow-definition plugin="workflow-job@2.9">
+  <actions/>
+  <description></description>
+  <keepDependencies>false</keepDependencies>
+  <properties>
+    <jenkins.model.BuildDiscarderProperty>
+      <strategy class="hudson.tasks.LogRotator">
+        <daysToKeep>-1</daysToKeep>
+        <numToKeep>10</numToKeep>
+        <artifactDaysToKeep>-1</artifactDaysToKeep>
+        <artifactNumToKeep>-1</artifactNumToKeep>
+      </strategy>
+    </jenkins.model.BuildDiscarderProperty>
+    <org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty>
+      <triggers/>
+    </org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty>
+  </properties>
+  <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps@2.24">
+    <script>node(&apos;master&apos;) {
+    stage (&apos;Git Checkout&apos;) {
+        git branch: &apos;master&apos;, credentialsId: &apos;Auto_CTCO&apos;, url: &apos;https://github.com/yxycman/kiosk_develop_pipe.git&apos;
+    }
+    
+    stage (&apos;Build Artifact&apos;) {
+        withEnv([&quot;JAVA_HOME=${tool &apos;jdk_8121&apos;}&quot;, &quot;PATH=$PATH:${tool &apos;mvn_325&apos;}/bin/&quot;]) {
+            sh &quot;mvn -f HelloWorld/pom.xml clean package&quot;
+        }
+    }
+    
+    stash includes: &apos;HelloWorld/target/hello-world-0.1-SNAPSHOT.jar&apos;, name: &apos;SNAPSHOT&apos;
+    stash includes: &apos;HelloWorld/Dockerfile&apos;, name: &apos;Dockerfile&apos;
+}    
+
+node(&apos;docker_builder&apos;) {   
+    stage(&apos;Create Docker Image&apos;) {
+        dir(&apos;/tmp/HelloWorld&apos;) {
+            unstash &quot;Dockerfile&quot;
+            unstash &quot;SNAPSHOT&quot;
+            sh &quot;docker build -f HelloWorld/Dockerfile --build-arg BUILD_VERSION=1.${env.BUILD_NUMBER} -t balancer1:5000/javahelloworld:1.${env.BUILD_NUMBER} .&quot;
+        }
+    }
+    
+    stage(&apos;Push Docker Image&apos;) {
+        sh &quot;docker push balancer1:5000/javahelloworld:1.${env.BUILD_NUMBER}&quot;
+    }
+    
+    stage(&apos;Remove local Docker Image&apos;) {
+        sh &quot;docker rmi balancer1:5000/javahelloworld:1.${env.BUILD_NUMBER}&quot;
+    }
+}</script>
+    <sandbox>false</sandbox>
+  </definition>
+  <triggers/>
+</flow-definition>

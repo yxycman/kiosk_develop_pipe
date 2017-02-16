@@ -1,0 +1,11 @@
+consul_binaries: [
+  { src: "consul", dest: "consul" },
+  { src: "consul-template", dest: "consul-template" }
+]
+
+directories:
+  - "/data/consul/data"
+  - "/data/consul/config/handlers"
+  - "/data/consul/logs"
+
+consul_server_param: "-server -ui"

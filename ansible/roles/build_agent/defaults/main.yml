@@ -1,0 +1,10 @@
+apt_packages:
+  - openjdk-7-jdk
+  - git
+  - build-essential 
+  - libssl-dev 
+  - libffi-dev 
+  - python-dev
+
+pip_packages:
+  - ansible==2.0.0.2

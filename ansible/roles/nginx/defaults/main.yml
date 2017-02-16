@@ -1,0 +1,24 @@
+nginx_container_name : NginxLatest
+
+nginx_directories:
+  - "/data/nginx/conf.d"
+  - "/data/nginx/consul_templ"
+
+nginx_extra_hosts: [
+  {
+    "cluster1": "10.10.10.101" ,
+    "cluster2": "10.10.10.102" ,
+    "cluster3": "10.10.10.103" ,
+  }
+]
+
+nginx_files: [
+  { src: "nginx.conf", dest: "/data/nginx/nginx.conf", mode: "644" },
+  { src: "consul_pinger.sh", dest: "/data/nginx/consul_pinger.sh", mode: "755" },
+  { src: "app.conf", dest: "/data/nginx/conf.d/app.conf", mode: "644" },
+  { src: "app_upstream.conf", dest: "/data/nginx/conf.d/app_upstream.conf", mode: "644" },
+  { src: "app.templ", dest: "/data/nginx/consul_templ/app.templ", mode: "644" },
+  { src: "consul.conf", dest: "/data/nginx/conf.d/consul.conf", mode: "644" },
+  { src: "consul_upstream.conf", dest: "/data/nginx/conf.d/consul_upstream.conf", mode: "644" },
+  { src: "consul.templ", dest: "/data/nginx/consul_templ/consul.templ", mode: "644" },
+]

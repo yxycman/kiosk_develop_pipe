@@ -1,0 +1,58 @@
+- name: Directories are created
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    recurse: yes
+  with_items: "{{ nginx_directories }}"
+
+- name: Copy default configs
+  copy:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: "{{ item.mode }}"
+  with_items: "{{ nginx_files }}"
+  register: default_configs
+
+- name: Generate configs from Consul
+  shell: "consul-template -consul cluster1:8500 -template /data/nginx/consul_templ/app.templ:/data/nginx/conf.d/app_upstream.conf -once"
+  register: generated_configs
+  ignore_errors: yes
+
+- name: Docker Nginx container
+  docker:
+    name: "{{ nginx_container_name }}"
+    image: 'nginx'
+    state: started
+    expose:
+     - 8500
+    ports:
+     - "8500:8500"
+     - "80:80"
+     - "443:443"
+    restart_policy: always
+    volumes:
+     - "/data/nginx/nginx.conf:/etc/nginx/nginx.conf"
+     - "/data/nginx/conf.d:/etc/nginx/conf.d"
+    extra_hosts:
+      "{{ nginx_extra_hosts.0 }}"
+
+- name: Reloading Nginx
+  shell: "docker exec -it {{ nginx_container_name }} service nginx reload"
+  when: default_configs.changed or generated_configs.changed
+
+- name: Starting Consul-template watch script
+  shell: "nohup /data/nginx/consul_pinger.sh &"
+
+#- name: De-registering Consul-template watch script in Consul
+#  shell: "curl http://{{ item }}:8500/v1/agent/service/deregister/consul_pinger"
+#  with_items: "{{ nginx_extra_hosts.0 }}"
+
+- name: Registering Consul-template watch script in Consul
+  shell: "curl -s -X PUT -d '{ \"Name\": \"consul_pinger\", \"Address\": \"balancer1\", \"Port\":65432, \
+    \"Check\": { \"TCP\": \"balancer1:65432\", \"Interval\": \"30s\" }}' \
+    http://{{ item }}:8500/v1/agent/service/register"
+  with_items: "{{ nginx_extra_hosts.0 }}"

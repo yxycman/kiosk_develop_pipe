@@ -1,0 +1,19 @@
+- name: Directories are created
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    recurse: yes
+  with_items: "{{ registry_directories }}"
+
+- name: Docker Registry container
+  docker:
+    name: DockerRegistry2
+    image: 'registry:2'
+    state: started
+    ports:
+     - "5000:5000"
+    restart_policy: always
+    volumes:
+     - "/data/registry:/var/lib/registry"

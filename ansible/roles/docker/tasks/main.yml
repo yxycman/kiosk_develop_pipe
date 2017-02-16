@@ -1,0 +1,4 @@
+- include: install.yml
+
+- include: swarm.yml
+  when: swarm_cluster|bool

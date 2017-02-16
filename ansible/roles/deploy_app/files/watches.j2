@@ -1,0 +1,9 @@
+{
+  "watches": [
+    {
+      "type": "checks",
+      "service": "{{ swarm_app_name }}",
+      "handler": "/data/consul/config/handlers/{{ swarm_app_name }}_handler.sh"
+    }
+  ]
+}

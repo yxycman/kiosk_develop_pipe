@@ -1,0 +1,104 @@
+- name: Directories are created
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    recurse: yes
+  with_items: "{{ jenkins_directories }}"
+
+- name: Docker Jenkins container
+  docker:
+    name: "{{ jenkins_container_name }}"
+    image: 'jenkins'
+    state: started
+    ports:
+     - "8080:8080"
+    restart_policy: always
+    volumes:
+     - "/data/jenkins:/var/jenkins_home"
+    extra_hosts:
+     balancer1: "10.10.10.100"
+  register: just_started
+
+- name: Sleeping while Jenkins creates directory structure
+  pause:
+    seconds: 5
+  when: just_started.summary.started != 0
+
+- name: Waiting for Jenkins to start
+  uri:
+    url: "http://127.0.0.1:8080/api/xml"
+    return_content: yes
+    status_code: 503,403,401
+  register: start_output
+  until: start_output.status == 403
+  retries: 10
+  delay: 5
+  when: just_started.summary.started != 0
+
+- name: Loading Jenkins Admin token
+  shell: "cat /data/jenkins/secrets/initialAdminPassword"
+  register: jenkins_default_token
+  when: just_started.summary.started != 0
+
+- name: Deleting Jenkins Admin token
+  file:
+    path: "/data/jenkins/secrets/initialAdminPassword"
+    state: absent
+
+- debug: msg="Token is {{ jenkins_default_token.stdout | default(jenkins_admin_token) }}"
+
+- name: Copy default configs
+  copy:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: 0644
+  with_items: "{{ jenkins_files }}"
+  register: config_files
+
+- name: Copy Jobs configs
+  copy:
+    src: "{{ item.src }}"
+    dest: "/tmp/{{ item.name }}_config.xml"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: 0644
+  with_items: "{{ jenkins_jobs }}"
+
+- name: Loading CRUMB for API access
+  shell: "curl -s 'http://admin:{{ jenkins_default_token.stdout | default(jenkins_admin_token) }}@127.0.0.1:8080/crumbIssuer/api/xml?xpath=concat(//crumbRequestField,\":\",//crumb)'"
+  register: jenkins_crumb
+
+- name: Pushing plugins to Jenkins server
+  shell: "curl -X POST -d '<jenkins><install plugin=\"{{ item }}@latest\" /></jenkins>' -H '{{ jenkins_crumb.stdout }}' -H 'Content-Type: text/xml' \
+    http://admin:{{ jenkins_default_token.stdout | default(jenkins_admin_token) }}@127.0.0.1:8080/pluginManager/installNecessaryPlugins"
+  with_items:
+  - "{{ jenkins_plugins }}"
+  args:
+    creates: "/data/jenkins/plugins/{{ item }}"
+
+- name: Waiting for installation of plugins
+  wait_for:
+    path: "/data/jenkins/plugins/{{ item }}"
+    timeout: 600
+  with_items:
+  - "{{ jenkins_plugins }}"
+
+- name: Pushing jobs to Jenkins server
+  shell: "curl -v -X POST 'http://admin:{{ jenkins_default_token.stdout | default(jenkins_admin_token) }}@127.0.0.1:8080/createItem?name={{ item.name }}' \
+   -H 'Content-Type:text/xml' -H '{{ jenkins_crumb.stdout }}' --data-binary @/tmp/{{ item.name }}_config.xml"
+  with_items:
+  - "{{ jenkins_jobs }}"
+  args:
+    creates: "/data/jenkins/jobs/{{ item.name }}/config.xml"
+
+- name: Restarting Jenkins
+  shell: "curl -X POST -H '{{ jenkins_crumb.stdout }}' http://admin:{{ jenkins_default_token.stdout | default(jenkins_admin_token) }}@127.0.0.1:8080/restart"
+  when: config_files.changed
+
+#    shell: "curl -s 'http://admin:{{ jenkins_default_token }}@{{ ansible_all_ipv4_addresses | ipaddr('10.10.10.0/24') | last }}:\
+#    {{ is_started.ansible_facts.docker_containers[0].NetworkSettings.Ports['8080/tcp'][0].HostPort }}\
+#    /crumbIssuer/api/xml?xpath=concat(//crumbRequestField,\":\",//crumb)'"

@@ -1,0 +1,3 @@
+upstream consul { {{range service "consul"}}
+	server {{.Address}}:8500;{{end}}
+}

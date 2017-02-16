@@ -1,0 +1,20 @@
+#!/bin/bash
+
+read -r INPUT
+
+unset kv_array
+declare -A kv_array
+for i in $(echo $INPUT | jq -r '[.[] | "["+.Node+"]="+.Status] | sort[]'); do 
+	eval kv_array$i; 
+done
+
+for i in "${!kv_array[@]}"; do 
+	nodename=$i
+	value=${kv_array[$i]}
+	echo `date` Checked >> /tmp/handler1.out
+	if [[ $value != passing ]]; then
+		echo `date`: value of $nodename=$value >> /tmp/handler1.out
+	fi
+done
+
+exit 0

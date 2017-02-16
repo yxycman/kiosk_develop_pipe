@@ -1,0 +1,18 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<slave>
+  <name>docker_builder</name>
+  <description>docker_builder</description>
+  <remoteFS>/tmp/docker_builder</remoteFS>
+  <numExecutors>1</numExecutors>
+  <mode>NORMAL</mode>
+  <retentionStrategy class="hudson.slaves.RetentionStrategy$Always"/>
+  <launcher class="hudson.plugins.sshslaves.SSHLauncher" plugin="ssh-slaves@1.13">
+    <host>balancer1</host>
+    <port>22</port>
+    <credentialsId>5f8349a5-178c-42b7-b468-fb02b07cb402</credentialsId>
+    <maxNumRetries>0</maxNumRetries>
+    <retryWaitTime>0</retryWaitTime>
+  </launcher>
+  <label></label>
+  <nodeProperties/>
+</slave>

@@ -1,0 +1,111 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<flow-definition plugin="workflow-job@2.9">
+  <actions/>
+  <description></description>
+  <keepDependencies>false</keepDependencies>
+  <properties>
+    <org.jenkinsci.plugins.workflow.job.properties.DisableConcurrentBuildsJobProperty/>
+    <hudson.model.ParametersDefinitionProperty>
+      <parameterDefinitions>
+        <org.biouno.unochoice.ChoiceParameter plugin="uno-choice@1.5.2">
+          <name>APP</name>
+          <description>Name of application in registry</description>
+          <randomName>choice-parameter-98489456410248</randomName>
+          <visibleItemCount>1</visibleItemCount>
+          <script class="org.biouno.unochoice.model.GroovyScript">
+            <secureScript plugin="script-security@1.25">
+              <script>import groovy.json.JsonSlurper
+def sluper = new JsonSlurper().parse(new URL(&quot;http://balancer1:5000/v2/_catalog&quot;))
+return sluper.repositories</script>
+              <sandbox>false</sandbox>
+            </secureScript>
+            <secureFallbackScript plugin="script-security@1.25">
+              <script></script>
+              <sandbox>false</sandbox>
+            </secureFallbackScript>
+          </script>
+          <projectName>HelloWorld_DeployPipe</projectName>
+          <choiceType>PT_SINGLE_SELECT</choiceType>
+          <filterable>false</filterable>
+        </org.biouno.unochoice.ChoiceParameter>
+        <org.biouno.unochoice.CascadeChoiceParameter plugin="uno-choice@1.5.2">
+          <name>VER</name>
+          <description>Version of deployed application</description>
+          <randomName>choice-parameter-98489462728332</randomName>
+          <visibleItemCount>1</visibleItemCount>
+          <script class="org.biouno.unochoice.model.GroovyScript">
+            <secureScript plugin="script-security@1.25">
+              <script>import groovy.json.JsonSlurper
+def sluper = new JsonSlurper().parse(new URL(&quot;http://balancer1:5000/v2/${APP}/tags/list&quot;))
+sortedlist = sluper.tags.sort {it.findAll(/(.*)\.(\d+)/, {it[2]})}
+return sortedlist.reverse()</script>
+              <sandbox>false</sandbox>
+            </secureScript>
+            <secureFallbackScript plugin="script-security@1.25">
+              <script></script>
+              <sandbox>false</sandbox>
+            </secureFallbackScript>
+          </script>
+          <projectName>HelloWorld_DeployPipe</projectName>
+          <parameters class="linked-hash-map"/>
+          <referencedParameters>APP</referencedParameters>
+          <choiceType>PT_SINGLE_SELECT</choiceType>
+          <filterable>false</filterable>
+        </org.biouno.unochoice.CascadeChoiceParameter>
+        <hudson.model.ChoiceParameterDefinition>
+          <name>REP_NUM</name>
+          <description>Number of APP replicas</description>
+          <choices class="java.util.Arrays$ArrayList">
+            <a class="string-array">
+              <string>3</string>
+              <string>2</string>
+              <string>1</string>
+              <string>4</string>
+              <string>5</string>
+              <string>6</string>
+            </a>
+          </choices>
+        </hudson.model.ChoiceParameterDefinition>
+      </parameterDefinitions>
+    </hudson.model.ParametersDefinitionProperty>
+    <org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty>
+      <triggers/>
+    </org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty>
+  </properties>
+  <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps@2.25">
+    <script>node(&apos;docker_builder&apos;) {
+    ansiColor(&apos;xterm&apos;) {    
+        stage (&apos;Git Checkout&apos;) {
+            git branch: &apos;master&apos;, credentialsId: &apos;Auto_CTCO&apos;, url: &apos;https://github.com/yxycman/kiosk_develop_pipe.git&apos;
+        }
+    
+        stage (&apos;Fixing permissions&apos;) {
+            sh &quot;chmod 600 ./insecure_private_key&quot;
+        }
+    
+        stage(&apos;Deploy with Ansible&apos;) {
+            ansiblePlaybook \
+                extras: &apos;-e swarm_app_name=${APP}  -e swarm_app_version=${VER} -e swarm_app_replicas=${REP_NUM}&apos;, \
+                inventory: &apos;ansible/hosts/cluster.yml&apos;, \
+                limit: &apos;docker&apos;, \
+                playbook: &apos;ansible/deploy_app.yml&apos;, \
+                forks: 1, \
+                colorized: true, \
+                sudo: true
+        }
+        
+        stage(&apos;Update Nginx config&apos;) {
+            ansiblePlaybook \
+                inventory: &apos;ansible/hosts/cluster.yml&apos;, \
+                limit: &apos;10.10.10.100&apos;, \
+                playbook: &apos;ansible/nginx.yml&apos;, \
+                forks: 1, \
+                colorized: true, \
+                sudo: true
+        }
+    }
+}</script>
+    <sandbox>true</sandbox>
+  </definition>
+  <triggers/>
+</flow-definition>

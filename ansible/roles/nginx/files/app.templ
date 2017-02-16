@@ -1,0 +1,3 @@
+upstream app { {{range service "javahelloworld"}}
+	server {{.Address}}:{{.Port}};{{end}}
+}

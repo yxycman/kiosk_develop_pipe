@@ -21,7 +21,7 @@ Simplified schema
 ![d](https://raw.githubusercontent.com/yxycman/my_hub/master/ccluster1.png)
 
 # After checking out repo, 
-<https://github.com/yxycman/kiosk_develop_pipe>
+<https://github.com/yxycman/docker_consul_jenkins_nginx>
 
 ### lets boot some VMachines
     vagrant up balancer1 cluster1 cluster2 cluster3

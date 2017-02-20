@@ -18,7 +18,8 @@
 
 
 Simplified schema
-![d](https://raw.githubusercontent.com/yxycman/my_hub/master/ccluster1.png)
+![d](https://raw.githubusercontent.com/yxycman/docker_consul_jenkins_nginx/master/simple_1.png)
+
 
 # After checking out repo, 
 <https://github.com/yxycman/docker_consul_jenkins_nginx>
